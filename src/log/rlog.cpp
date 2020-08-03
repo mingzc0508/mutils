@@ -119,9 +119,9 @@ private:
     off += format_timestamp(out + off, maxout - off);
     off += snprintf(out + off, maxout - off, "] (%s:%d)  ",
                     basename((char *)file), line);
-    if (off < maxout)
+    if (off < (int)maxout)
       off += vsnprintf(out + off, maxout - off, fmt, ap);
-    if (off >= maxout)
+    if (off >= (int)maxout)
       off = maxout - 1;
     out[off] = '\n';
     ++off;

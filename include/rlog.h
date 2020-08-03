@@ -1,5 +1,4 @@
-#ifndef ROKID_LOG_H
-#define ROKID_LOG_H
+#pragma once
 
 #include <stdint.h>
 #include <stdarg.h>
@@ -142,5 +141,3 @@ int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable)
 #else
 #define KLOGE(tag, fmt, ...)
 #endif
-
-#endif // ROKID_LOG_H

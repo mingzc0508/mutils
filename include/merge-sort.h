@@ -9,7 +9,7 @@
 template <typename T, typename IT, typename O>
 class MergeSort {
 public:
-  MergeSort(T *arr, uint32_t size, O &oper) : arrayList(arr), arraySize(size), op(oper) {
+  MergeSort(T *arr, uint32_t size, O &oper) : op(oper), arrayList(arr), arraySize(size) {
   }
 
   void sort() {

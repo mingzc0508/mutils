@@ -1,0 +1,22 @@
+cc_library_shared {
+  name: "libmutils",
+  srcs: [
+    "src/uri.cpp",
+    "src/global-error.cpp",
+    "src/log/rlog.cpp"
+  ],
+  local_include_dirs: [
+    "include",
+  ],
+  shared_libs:[
+    "liblog"
+  ],
+  cflags: [
+    "-Werror",
+    "-Wno-unused-parameter",
+    "-std=c++11",
+  ],
+  export_include_dirs: [
+    "include"
+  ],
+}

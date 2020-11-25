@@ -42,8 +42,8 @@ private:
       : func(f), tp(t), cb(c) {}
 
     TaskFunc func;
-    TaskCallback cb;
     std::chrono::steady_clock::time_point tp;
+    TaskCallback cb;
   };
 
   class TaskThread {

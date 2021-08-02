@@ -30,6 +30,8 @@ public:
   ///           DONE 任务执行完成
   ///           DISCARD 任务放弃
   typedef std::function<void(TaskOp op)> TaskCallback;
+  /// 每个线程启动时执行的函数, 由用户指定
+  typedef std::function<void()> ThreadOnceFunc;
 
 private:
   class TaskInfo {
@@ -54,9 +56,10 @@ private:
     TaskThread(const TaskThread& o) {
     }
 
-    void init(ThreadPool *pool, std::mutex& mut) {
+    void init(ThreadPool *pool, std::mutex& mut, ThreadOnceFunc func) {
       thePool = pool;
       thrMutex = &mut;
+      onceFunc = func;
     }
 
     void arise() {
@@ -86,6 +89,9 @@ private:
 
   private:
     void run() {
+      if (onceFunc != nullptr)
+        onceFunc();
+
       std::unique_lock<std::mutex> locker(*thrMutex);
       TaskInfo task;
 
@@ -122,6 +128,7 @@ private:
     std::mutex* thrMutex{nullptr};
     std::condition_variable thrCond;
     uint32_t flags{0};
+    ThreadOnceFunc onceFunc{nullptr};
   };
 
 public:
@@ -137,7 +144,8 @@ public:
   }
 
   ///\brief 初始化, 设置线程池最大线程数
-  void init(uint32_t max) {
+  /// 设置线程启动执行一次的函数
+  void init(uint32_t max, ThreadOnceFunc func = nullptr) {
     std::lock_guard<std::mutex> locker(poolMutex);
     if (max == 0 || max > THRPOOL_MAX_THREADS || status & THRPOOL_INITIALIZED)
       return;
@@ -146,7 +154,7 @@ public:
 
     uint32_t i;
     for (i = 0; i < max; ++i) {
-      threadArray[i].init(this, poolMutex);
+      threadArray[i].init(this, poolMutex, func);
     }
     initDeadThreads();
   }

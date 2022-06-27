@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
 project(ming_utils)
 set(VERSION 1.1)
 
@@ -7,37 +7,29 @@ if(POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" )
-  set(COMPILER_IS_CLANG true)
-else()
-  set(COMPILER_IS_CLANG false)
-endif()
-
-option(BUILD_DEBUG "debug or release" OFF)
 option(BUILD_DEMO "build demo" OFF)
 
-if (BUILD_DEBUG)
-  set (common_cxxflags "-g -O0")
-else()
-  set (common_cxxflags -O3)
-endif()
-if (NOT ${COMPILER_IS_CLANG})
-  set (common_ldflags "${common_ldflags} -pthread")
-endif()
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${common_cxxflags}")
-set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${common_ldflags}")
-set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${common_ldflags}")
+set(CMAKE_CXX_STANDARD 11)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 file(GLOB src_files
-  include/*.h
   src/*.cpp
   src/log/*.cpp
+)
+file(GLOB inc_files
+  include/*.h
 )
 add_library(mutils SHARED
   ${src_files}
 )
-target_include_directories(mutils PUBLIC
-  include
+target_include_directories(mutils PRIVATE include)
+target_include_directories(mutils INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/mutils>
+)
+set_target_properties(mutils PROPERTIES
+  PUBLIC_HEADER "${inc_files}"
 )
 add_library(mutils_static STATIC
   ${src_files}
@@ -45,16 +37,22 @@ add_library(mutils_static STATIC
 set_target_properties(mutils_static PROPERTIES
   OUTPUT_NAME mutils
   POSITION_INDEPENDENT_CODE ON
+  PUBLIC_HEADER "${inc_files}"
 )
-target_include_directories(mutils_static PUBLIC
-  include
-)
-install(DIRECTORY include/
-  DESTINATION include/mutils
+target_include_directories(mutils_static PRIVATE include)
+target_include_directories(mutils_static INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/mutils>
 )
 install (TARGETS mutils mutils_static
+  EXPORT mutils-config
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION include/mutils
+)
+install(EXPORT mutils-config
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/mutils"
+  NAMESPACE rokid::
 )
 
 # build demo

@@ -7,7 +7,7 @@ namespace rokid {
 
 class Uri {
 public:
-  bool parse(const char* uri);
+  bool parse(const std::string& uri);
 
   void clear();
 

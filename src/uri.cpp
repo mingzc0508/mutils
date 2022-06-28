@@ -128,18 +128,18 @@ static bool parse_path(Uri* uri, const char* s, int32_t b, int32_t e) {
   return true;
 }
 
-bool Uri::parse(const char* uri) {
-  if (uri == nullptr)
+bool Uri::parse(const string& uri) {
+  if (uri.empty())
     return false;
   clear();
 
-  int32_t e = strlen(uri);
+  int32_t e = uri.length();
   int32_t b = 0;
-  if (!parse_scheme(this, uri, b, e))
+  if (!parse_scheme(this, uri.c_str(), b, e))
     return false;
-  if (!parse_authority(this, uri, b, e))
+  if (!parse_authority(this, uri.c_str(), b, e))
     return false;
-  return parse_path(this, uri, b, e);
+  return parse_path(this, uri.c_str(), b, e);
 }
 
 void Uri::clear() {

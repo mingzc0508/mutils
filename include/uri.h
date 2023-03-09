@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string>
 
-namespace rokid {
+namespace mutils {
 
 class Uri {
 public:
@@ -21,4 +21,4 @@ public:
   std::string fragment;
 };
 
-} // namespace rokid
+} // namespace mutils

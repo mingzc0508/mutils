@@ -272,8 +272,8 @@ void rokid_log_remove_endpoint(const char *name) {
   RLog::remove_endpoint(name);
 }
 
-int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable) {
-  return RLog::enable_endpoint(name, init_arg, enable);
+int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, int32_t enable) {
+  return RLog::enable_endpoint(name, init_arg, (bool)enable);
 }
 
 #ifdef __ANDROID__

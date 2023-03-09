@@ -16,7 +16,7 @@
 #include "uri.h"
 
 using namespace std;
-using namespace rokid;
+using namespace mutils;
 
 class SocketServiceWriter : public RLogWriter {
 public:

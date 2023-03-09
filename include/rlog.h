@@ -2,6 +2,9 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+#ifdef __ANDROID__
+#include "android/log.h"
+#endif
 
 typedef enum {
   ROKID_LOGLEVEL_VERBOSE = 0,
@@ -92,7 +95,7 @@ int32_t rokid_log_add_builtin_endpoint(const char *name, RokidBuiltinLogWriter t
 
 void rokid_log_remove_endpoint(const char *name);
 
-int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, bool enable);
+int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, int32_t enable);
 
 #ifdef __cplusplus
 } // extern "C"

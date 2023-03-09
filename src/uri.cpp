@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace rokid {
+namespace mutils {
 
 static bool parse_scheme(Uri* uri, const char* s, int32_t& b, int32_t e) {
   int32_t i = b;
@@ -152,4 +152,4 @@ void Uri::clear() {
   fragment.clear();
 }
 
-} // namespace rokid
+} // namespace mutils

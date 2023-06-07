@@ -75,6 +75,11 @@ public:
       return *this;
     }
 
+    Builder& setAsync(bool b) {
+      svc->async = b;
+      return *this;
+    }
+
     SocketService* build() {
       auto ret = svc;
       svc = nullptr;
@@ -127,7 +132,10 @@ public:
     if (listenSocks == 0)
       return false;
     status = SocketServiceStatus::RUNNING;
-    serverRunThread = std::thread(serverRunTask);
+    if (async)
+      serverRunThread = std::thread(serverRunTask);
+    else
+      serverRunTask();
     return true;
   }
 
@@ -416,20 +424,21 @@ private:
   const char* ITAG;
 #ifdef __APPLE__
   // key: fd, value: socketType
-  map<int, int> sockets;
-  vector<struct pollfd> allfds;
-  string wakeupPollUri{"unix:flora-svc-special.sock"};
+  std::map<int, int> sockets;
+  std::vector<struct pollfd> allfds;
+  std::string wakeupPollUri{"unix:flora-svc-special.sock"};
 #else
   int epollfd{-1};
   struct epoll_event epollEvents[MAX_EPOLL_EVENTS];
   int32_t polloutNum{0};
-  set<int32_t> sockets;
+  std::set<int32_t> sockets;
 #endif
   std::function<void()> serverRunTask;
   std::thread serverRunThread;
   SocketServiceStatus status{SocketServiceStatus::STOPPED};
   ConnectionCallback connectionCallback;
   ReadCallback readCallback;
+  bool async{false};
 };
 
 } // namespace mutils

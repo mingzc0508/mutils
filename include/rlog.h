@@ -46,8 +46,8 @@ public:
   /// \return  0  should call 'write'
   //           1  don't call 'write'
   //           -1 error, will not call 'write'
-  virtual int32_t raw_write(const char* file, int line, RokidLogLevel lv,
-      const char* tag, const char* fmt, va_list ap) {
+  virtual int32_t raw_write(const char*, int, RokidLogLevel,
+      const char*, const char*, va_list) {
     return 0;
   }
 };

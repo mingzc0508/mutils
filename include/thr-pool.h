@@ -53,7 +53,7 @@ private:
     TaskThread() {
     }
 
-    TaskThread(const TaskThread& o) {
+    TaskThread(const TaskThread&) {
     }
 
     void init(ThreadPool *pool, std::mutex& mut, ThreadOnceFunc func) {

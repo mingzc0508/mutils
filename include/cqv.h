@@ -31,8 +31,10 @@ public:
   /// \brief 传入队列内存, 初始化队列数据结构
   ///
   /// 数据结构
+  /// uint32_t totalBytes - 总字节数
   /// uint32_t capacity - 最大元素数
   /// uint32_t writePos - 新数据写入的位置, 永远增长, 队列元素索引值 = writePos % capacity
+  /// uint32_t pad
   /// uint8_t[extraSize] extra - 额外数据区, 由外部使用, 队列本身不会修改此区内数据
   /// uint8_t[unitSize * capacity] elements - 元素数据区
   virtual void setMemory(void* mem) {
@@ -50,6 +52,10 @@ public:
   }
 
   const void* getExtra() const {
+    return extra;
+  }
+
+  void* getExtra() {
     return extra;
   }
 

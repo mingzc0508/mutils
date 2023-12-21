@@ -3,7 +3,9 @@ cc_library_shared {
   srcs: [
     "src/uri.cpp",
     "src/global-error.cpp",
-    "src/log/rlog.cpp"
+    "src/log/rlog.cpp",
+    "src/http.cpp",
+    "src/variable_queue.cpp",
   ],
   local_include_dirs: [
     "include",

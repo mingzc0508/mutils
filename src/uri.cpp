@@ -128,6 +128,32 @@ static bool parse_path(Uri* uri, const char* s, int32_t b, int32_t e) {
   return true;
 }
 
+static pair<string, int32_t> default_ports[] = {
+  { "ws", 80 },
+  { "wss", 443 },
+  { "http", 80 },
+  { "https", 443 },
+  { "", 0 },
+};
+
+static void set_default_port(Uri* uri) {
+  if (uri->port > 0)
+    return;
+  uint32_t i{0};
+  while (true) {
+    auto p = default_ports + i;
+    ++i;
+    if (p->first == "") {
+      uri->port = 80;
+      break;
+    }
+    if (p->first == uri->scheme) {
+      uri->port = p->second;
+      break;
+    }
+  }
+}
+
 bool Uri::parse(const string& uri) {
   if (uri.empty())
     return false;
@@ -139,6 +165,7 @@ bool Uri::parse(const string& uri) {
     return false;
   if (!parse_authority(this, uri.c_str(), b, e))
     return false;
+  set_default_port(this);
   return parse_path(this, uri.c_str(), b, e);
 }
 

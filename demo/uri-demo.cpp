@@ -1,6 +1,6 @@
 #include "uri.h"
 
-using namespace rokid;
+using namespace mutils;
 using namespace std;
 
 #define URI_COUNT 7

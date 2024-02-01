@@ -148,14 +148,19 @@ public:
   }
 
   typedef std::function<void(const void*)> ReadAction;
-  void read(ReadAction action) {
+  bool read(ReadAction action) {
     auto pos = *writePos;
+    if (pos == 0)
+      return false;
     uint32_t off = ((pos - 1) % unitCount) * unitSize;
     action(units + off);
+    return true;
   }
 
   void* read() {
     auto pos = *writePos;
+    if (pos == 0)
+      return nullptr;
     uint32_t off = ((pos - 1) % unitCount) * unitSize;
     return units + off;
   }

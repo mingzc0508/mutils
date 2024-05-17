@@ -65,6 +65,21 @@ public:
     return totalBytes;
   }
 
+  void reset() {
+    unitSize = 0;
+    unitCount = 0;
+    extraSize = 0;
+    totalBytes = nullptr;
+    capacity = nullptr;
+    writePos = nullptr;
+    extra = nullptr;
+    units = nullptr;
+  }
+
+  bool ready() const {
+    return totalBytes != nullptr;
+  }
+
 protected:
   uint32_t unitSize;
   uint32_t unitCount{0};
@@ -127,6 +142,11 @@ public:
     *writePos = pos + 1;
   }
 
+  void reset() {
+    CircleQueueBase::reset();
+    memoryBytes = 0;
+  }
+
 private:
   uint32_t memoryBytes;
 };
@@ -149,8 +169,10 @@ public:
       maxRead = 1;
   }
 
+  /// \brief 读取队列最后一个元素
+  ///        即使队列没有新元素加入, 也可以一直读到最后一个元素
   typedef std::function<void(const void*)> ReadAction;
-  bool read(ReadAction action) {
+  bool readLast(ReadAction action) {
     auto pos = *writePos;
     if (pos == 0)
       return false;
@@ -159,7 +181,7 @@ public:
     return true;
   }
 
-  void* read() {
+  void* readLast() {
     auto pos = *writePos;
     if (pos == 0)
       return nullptr;
@@ -167,6 +189,8 @@ public:
     return units + off;
   }
 
+  /// \brief 读取队列最后N个元素
+  ///        读取后消耗, 再次调用不会再读取到, 直到新元素加入
   typedef std::function<void(const void*, uint32_t, uint32_t)> ReadAllAction;
   uint32_t readAll(ReadAllAction action, uint32_t outSize) {
     auto wpos = *writePos;
@@ -184,6 +208,12 @@ public:
     }
     readPos = wpos;
     return count;
+  }
+
+  void reset() {
+    CircleQueueBase::reset();
+    readPos = 0;
+    maxRead = 0;
   }
 
 private:

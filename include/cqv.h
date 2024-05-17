@@ -145,6 +145,8 @@ public:
     unitCount = *capacity;
     readPos = *writePos;
     maxRead = unitCount * 3 / 4;
+    if (maxRead == 0)
+      maxRead = 1;
   }
 
   typedef std::function<void(const void*)> ReadAction;

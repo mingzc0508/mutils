@@ -116,11 +116,15 @@ public:
         continue;
       }
       if (urip.scheme == "unix") {
-        if (!listenUnix(urip))
+        if (!listenUnix(urip)) {
+          ++it;
           continue;
+        }
       } else if(urip.scheme == "tcp") {
-        if (!listenTcp(urip))
+        if (!listenTcp(urip)) {
+          ++it;
           continue;
+        }
       } else {
         ++it;
         continue;

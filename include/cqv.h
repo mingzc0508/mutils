@@ -6,49 +6,29 @@ namespace mutils {
 
 class CircleQueueBase {
 public:
-  CircleQueueBase() {
-    unitSize = 0;
-    extraSize = 0;
-  }
-
-  /// \brief 构造函数
-  ///
-  /// 构造函数并不实际分配队列内存, 此时队列还不可用, 需要调用init
-  ///
-  /// \param usize 队列中每元素占用字节数
-  /// \param esize 额外数据字节数
-  CircleQueueBase(uint32_t usize, uint32_t esize) {
-    init(usize, esize);
-  }
-
-  virtual ~CircleQueueBase() = default;
-
-  void init(uint32_t usize, uint32_t esize) {
-    unitSize = (usize + 7) & (~7);
-    extraSize = (esize + 7) & (~7);
-  }
-
   /// \brief 传入队列内存, 初始化队列数据结构
   ///
   /// 数据结构
   /// uint32_t totalBytes - 总字节数
   /// uint32_t capacity - 最大元素数
   /// uint32_t writePos - 新数据写入的位置, 永远增长, 队列元素索引值 = writePos % capacity
-  /// uint32_t pad
+  /// uint32_t extraSize
   /// uint8_t[extraSize] extra - 额外数据区, 由外部使用, 队列本身不会修改此区内数据
   /// uint8_t[unitSize * capacity] elements - 元素数据区
-  virtual void setMemory(void* mem) {
-    uint8_t* p = (uint8_t*)mem;
-    totalBytes = (uint32_t*)p;
-    p += sizeof(uint32_t);
-    capacity = (uint32_t*)p;
-    p += sizeof(uint32_t);
-    writePos = (uint32_t*)p;
-    p += sizeof(uint32_t);
-    p += sizeof(uint32_t); // 8-bytes align
-    extra = p;
-    p += extraSize;
-    units = p;
+  void setMemory(void* mem, uint32_t usize, uint32_t esize, uint32_t ucount) {
+    auto p = setMemoryIn(mem);
+    *totalBytes = usize * ucount + esize + 16;
+    *capacity = ucount;
+    *writePos = 0;
+    *extraSize = esize;
+    units = p + esize;
+    unitCount = ucount;
+  }
+
+  void setMemory(void* mem) {
+    auto p = setMemoryIn(mem);
+    units = p + (*extraSize);
+    unitCount = *capacity;
   }
 
   const void* getExtra() const {
@@ -63,6 +43,12 @@ public:
     if (bytes)
       *bytes = *totalBytes;
     return totalBytes;
+  }
+
+  uint32_t getMemorySize() const {
+    if (totalBytes)
+      return *totalBytes;
+    return 0;
   }
 
   void reset() {
@@ -80,13 +66,28 @@ public:
     return totalBytes != nullptr;
   }
 
+private:
+  uint8_t* setMemoryIn(void* mem) {
+    uint8_t* p = (uint8_t*)mem;
+    totalBytes = (uint32_t*)p;
+    p += sizeof(uint32_t);
+    capacity = (uint32_t*)p;
+    p += sizeof(uint32_t);
+    writePos = (uint32_t*)p;
+    p += sizeof(uint32_t);
+    extraSize = (uint32_t*)p;
+    p += sizeof(uint32_t);
+    extra = p;
+    return p;
+  }
+
 protected:
-  uint32_t unitSize;
+  uint32_t unitSize{0};
   uint32_t unitCount{0};
-  uint32_t extraSize;
   uint32_t* totalBytes{nullptr};
   uint32_t* capacity{nullptr};
   volatile uint32_t* writePos{nullptr};
+  uint32_t* extraSize;
   void* extra{nullptr};
   uint8_t* units{nullptr};
 };
@@ -94,34 +95,8 @@ protected:
 /// \brief 共享内存环形队列(写)
 class CircleQueueWriter : public CircleQueueBase {
 public:
-  CircleQueueWriter() {
-    memoryBytes = 0;
-  }
-
-  /// \param ucount 队列中元素最大个数
-  CircleQueueWriter(uint32_t usize, uint32_t esize, uint32_t ucount)
-    : CircleQueueBase(usize, esize) {
-    unitCount = ucount;
-    memoryBytes = unitSize * unitCount + extraSize + sizeof(uint32_t) * 4;
-  }
-
-  virtual ~CircleQueueWriter() = default;
-
-  uint32_t memBytes() const {
-    return memoryBytes;
-  }
-
-  void init(uint32_t usize, uint32_t esize, uint32_t ucount) {
-    CircleQueueBase::init(usize, esize);
-    unitCount = ucount;
-    memoryBytes = unitSize * unitCount + extraSize + sizeof(uint32_t) * 4;
-  }
-
-  void setMemory(void* mem) {
-    CircleQueueBase::setMemory(mem);
-    *totalBytes = memoryBytes;
-    *capacity = unitCount;
-    *writePos = 0;
+  static uint32_t memBytes(uint32_t usize, uint32_t ucount, uint32_t esize) {
+    return 16 + esize + usize * ucount;
   }
 
   typedef std::function<void(void*)> WriteAction;
@@ -141,28 +116,12 @@ public:
     auto pos = *writePos;
     *writePos = pos + 1;
   }
-
-  void reset() {
-    CircleQueueBase::reset();
-    memoryBytes = 0;
-  }
-
-private:
-  uint32_t memoryBytes;
 };
 
 class CircleQueueReader : public CircleQueueBase {
 public:
-  CircleQueueReader() {}
-
-  CircleQueueReader(uint32_t usize, uint32_t esize)
-    : CircleQueueBase(usize, esize) {}
-
-  virtual ~CircleQueueReader() = default;
-
   void setMemory(void* mem) {
     CircleQueueBase::setMemory(mem);
-    unitCount = *capacity;
     readPos = *writePos;
     maxRead = unitCount * 3 / 4;
     if (maxRead == 0)

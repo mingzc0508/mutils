@@ -22,12 +22,14 @@ public:
     *writePos = 0;
     *extraSize = esize;
     units = p + esize;
+    unitSize = usize;
     unitCount = ucount;
   }
 
   void setMemory(void* mem) {
     auto p = setMemoryIn(mem);
     units = p + (*extraSize);
+    unitSize = (*totalBytes - 16 - *extraSize) / *capacity;
     unitCount = *capacity;
   }
 
@@ -173,6 +175,10 @@ public:
     CircleQueueBase::reset();
     readPos = 0;
     maxRead = 0;
+  }
+
+  void clear() {
+    readPos = *writePos;
   }
 
 private:

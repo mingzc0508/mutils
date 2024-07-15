@@ -150,6 +150,20 @@ public:
     return units + off;
   }
 
+  bool read(ReadAction action) {
+    auto wpos = *writePos;
+    auto count = wpos - readPos;
+    if (count == 0)
+      return false;
+    if (count > maxRead)
+      count = maxRead;
+    auto rpos = wpos - count;
+    auto idx = rpos % unitCount;
+    action(units + idx * unitSize);
+    readPos = rpos + 1;
+    return true;
+  }
+
   /// \brief 读取队列最后N个元素
   ///        读取后消耗, 再次调用不会再读取到, 直到新元素加入
   typedef std::function<void(const void*, uint32_t, uint32_t)> ReadAllAction;

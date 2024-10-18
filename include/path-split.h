@@ -1,9 +1,13 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 namespace mutils {
 
 class PathSplit {
 public:
+  /// \brief 将路径名拆分为 路径, 文件名, 扩展名
   static void split(const std::string& pathname, std::string& path,
       std::string& base, std::string& ext) {
     split(pathname.c_str(), path, base, ext);
@@ -38,6 +42,28 @@ public:
       base.assign(pathname + baseStart, lastDot - baseStart);
       ext.assign(pathname + lastDot, slen - lastDot);
     }
+  }
+
+  /// \brief 路径/a/b/c/d解析为/a, /a/b, /a/b/c, /a/b/c/d, 用于递归创建目录
+  static int32_t recurse(const std::string& path, std::vector<std::string>& out) {
+    return recurse(path.c_str(), out);
+  }
+
+  static int32_t recurse(const char* path, std::vector<std::string>& out) {
+    auto p = path;
+    if (p[0] != '/')
+      return -1;
+    std::string tmp;
+    while (true) {
+      ++p;
+      if (p[0] == '/' || p[0] == '\0') {
+        tmp.assign(path, p - path);
+        out.push_back(tmp);
+      }
+      if (p[0] == '\0')
+        break;
+    }
+    return 0;
   }
 };
 

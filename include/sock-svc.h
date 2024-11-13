@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <map>
+#include "sock-cli.h"
 #else
 #include <sys/epoll.h>
 #include <set>
@@ -255,7 +256,7 @@ private:
     tmp.events = POLLIN;
     tmp.revents = 0;
     allfds.push_back(tmp);
-    sockets.insert(make_pair(fd, type));
+    sockets.insert(std::make_pair(fd, type));
 #else
     struct epoll_event ev;
     ev.events = EPOLLIN;
@@ -305,12 +306,9 @@ private:
   }
 
   void wakeupPoll() {
-    /** TODO: new socket and connect to wakeupPollUri
-    ClientSocketAdapter adap{options.bufsize};
-    Uri urip;
-    urip.parse(wakeupPollUri.c_str());
-    adap.connect(urip, 10);
-    */
+    auto fd = SocketClient::connect(wakeupPollUri, 200);
+    if (fd >= 0)
+      ::close(fd);
   }
 #endif
 
@@ -339,7 +337,7 @@ private:
 
   void doReadAccept() {
 #ifdef __APPLE__
-    vector<struct pollfd> rfds;
+    std::vector<struct pollfd> rfds;
     auto it = allfds.begin();
     while (it != allfds.end()) {
       if (it->revents)
@@ -347,7 +345,7 @@ private:
       ++it;
     }
     it = rfds.begin();
-    map<int, int>::iterator sit;
+    std::map<int, int>::iterator sit;
     while (it != rfds.end()) {
       sit = sockets.find(it->fd);
       assert(sit != sockets.end());

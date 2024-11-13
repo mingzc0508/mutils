@@ -12,6 +12,9 @@
 #include <string>
 #include <chrono>
 #include "uri.h"
+#ifdef __APPLE__
+#include <errno.h>
+#endif
 
 namespace mutils {
 

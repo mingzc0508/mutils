@@ -6,6 +6,7 @@ cc_library_shared {
     "src/log/rlog.cpp",
     "src/http.cpp",
     "src/variable_queue.cpp",
+    "src/xxd.cpp",
   ],
   local_include_dirs: [
     "include",

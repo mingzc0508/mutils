@@ -113,20 +113,26 @@ private:
   }
 
   static bool connectUnix(int fd, const Uri& urip) {
+    if (urip.path.empty())
+      return false;
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    uint32_t abslen = urip.path.length() + 1;
-    if (abslen > sizeof(addr.sun_path))
-      abslen = sizeof(addr.sun_path);
+    uint32_t addrlen;
 #ifdef __APPLE__
-    strncpy(addr.sun_path, urip.path.c_str(), abslen);
+    strncpy(addr.sun_path, urip.path.c_str(), sizeof(addr.sun_path));
+    addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
 #else
-    addr.sun_path[0] = '\0';
-    memcpy(addr.sun_path + 1, urip.path.data(), abslen - 1);
+    if (urip.path[0] == '/') {
+      strncpy(addr.sun_path, urip.path.c_str(), sizeof(addr.sun_path));
+      addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
+    } else {
+      addr.sun_path[0] = '\0';
+      strncpy(addr.sun_path + 1, urip.path.c_str(), sizeof(addr.sun_path) - 1);
+      addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path + 1) + 2;
+    }
 #endif
-    abslen += offsetof(sockaddr_un, sun_path);
-    return ::connect(fd, (sockaddr *)&addr, abslen) == 0;
+    return ::connect(fd, (sockaddr *)&addr, addrlen) == 0;
   }
 
   static bool connectTcp(int fd, const Uri& urip) {

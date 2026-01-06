@@ -5,7 +5,7 @@
 
 class FileDescWriter : public RLogWriter {
 public:
-  virtual bool init(void* arg) {
+  virtual bool init(const void* arg) {
     fd = reinterpret_cast<intptr_t>(arg);
     return true;
   }

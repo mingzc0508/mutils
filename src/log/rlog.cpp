@@ -5,7 +5,9 @@
 #include <string>
 #include <map>
 #include "rlog.h"
+#include "fd-writer.h"
 #include "sock-svc-writer.h"
+#include "andro-writer.h"
 
 #define WRITE_BUFFER_SIZE 4096
 #define WRITER_FLAG_AUTOPTR 0x1
@@ -21,7 +23,7 @@ using namespace std;
 class RLogWriterInfo {
 public:
   RLogWriter *writer = nullptr;
-  void *arg = nullptr;
+  const void *arg = nullptr;
   uint32_t flags = 0;
 };
 typedef map<string, RLogWriterInfo> WriterMap;
@@ -63,7 +65,7 @@ public:
     }
   }
 
-  int32_t enable_endpoint(const string &name, void *init_arg, bool enable) {
+  int32_t enable_endpoint(const string &name, const void *init_arg, bool enable) {
     auto it = writers.find(name);
     if (it == writers.end())
       return RLOG_ENOTFOUND;
@@ -171,7 +173,12 @@ private:
 
 static RLogInst rlog_inst_(WRITE_BUFFER_SIZE);
 // in android platform, don't write log to stdout
-#if !defined(__ANDROID__)
+#if defined(__ANDROID__)
+static int ooxx = ([]() {
+  RLog::add_endpoint("android", ROKID_LOGWRITER_ANDROID);
+  rlog_inst_.enable_endpoint("android", nullptr, true);
+}(), 0);
+#else
 static int ooxx = ([]() {
   RLog::add_endpoint("std", ROKID_LOGWRITER_FD);
   rlog_inst_.enable_endpoint("std", (void *)STDOUT_FILENO, true);
@@ -190,8 +197,10 @@ int32_t RLog::add_endpoint(const char *name, RokidBuiltinLogWriter type) {
   RLogWriter *writer;
   if (type == ROKID_LOGWRITER_FD) {
     writer = new FileDescWriter();
-  } else if (type == ROKID_LOGWRITER_SOCKET) {
+  } else if (type == ROKID_LOGWRITER_SOCKET_SERVICE) {
     writer = new SocketServiceWriter();
+  } else if (type == ROKID_LOGWRITER_ANDROID) {
+    writer = new AndroidWriter();
   } else
     return RLOG_EINVAL;
   int32_t r = rlog_inst_.add_endpoint(name, writer, WRITER_FLAG_AUTOPTR);
@@ -206,7 +215,7 @@ void RLog::remove_endpoint(const char* name) {
   rlog_inst_.remove_endpoint(name);
 }
 
-int32_t RLog::enable_endpoint(const char* name, void* init_arg,
+int32_t RLog::enable_endpoint(const char* name, const void* init_arg,
                               bool enable) {
   if (name == nullptr)
     return RLOG_EINVAL;
@@ -235,7 +244,7 @@ public:
   RokidLogWriter *writer;
   void *arg;
 
-  bool init(void *init_arg) {
+  bool init(const void *init_arg) {
     if (writer->init)
       return writer->init(arg, init_arg) ? false : true;
     return true;
@@ -272,35 +281,6 @@ void rokid_log_remove_endpoint(const char *name) {
   RLog::remove_endpoint(name);
 }
 
-int32_t rokid_log_enable_endpoint(const char *name, void *init_arg, int32_t enable) {
+int32_t rokid_log_enable_endpoint(const char *name, const void *init_arg, int32_t enable) {
   return RLog::enable_endpoint(name, init_arg, (bool)enable);
 }
-
-#ifdef __ANDROID__
-#include <android/log.h>
-static int to_android_loglevel(RokidLogLevel lv) {
-  static int android_loglevel[] = {
-    ANDROID_LOG_VERBOSE,
-    ANDROID_LOG_DEBUG,
-    ANDROID_LOG_INFO,
-    ANDROID_LOG_WARN,
-    ANDROID_LOG_ERROR
-  };
-  if (lv < 0 || lv >= ROKID_LOGLEVEL_NUMBER)
-    return ANDROID_LOG_DEFAULT;
-  return android_loglevel[lv];
-}
-
-void android_log_print(const char *file, int line, RokidLogLevel lv,
-                       const char* tag, const char* fmt, ...) {
-  int prio = to_android_loglevel(lv);
-  va_list ap;
-  va_start(ap, fmt);
-  __android_log_vprint(prio, tag, fmt, ap);
-  va_end(ap);
-
-  va_start(ap, fmt);
-  rlog_inst_.print(file, line, lv, tag, fmt, ap);
-  va_end(ap);
-}
-#endif

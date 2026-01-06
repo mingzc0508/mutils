@@ -21,7 +21,12 @@
 #include <functional>
 #include <thread>
 #include "uri.h"
-#include "rlog.h"
+#ifdef __ANDROID__
+#include <android/log.h>
+#define PRINT(tag, fmt, ...) __android_log_print(ANDROID_LOG_INFO, tag, fmt, __VA_ARGS__)
+#else
+#define PRINT(tag, fmt, ...) printf(fmt "\n", __VA_ARGS__)
+#endif
 
 #define SOCKET_TYPE_LISTEN 1
 #ifndef __APPLE__
@@ -102,7 +107,7 @@ public:
 #else
     epollfd = epoll_create1(EPOLL_CLOEXEC);
     if (epollfd < 0) {
-      KLOGI(ITAG, "epoll_create failed: %s", strerror(errno));
+      PRINT(ITAG, "epoll_create failed: %s", strerror(errno));
       return false;
     }
 #endif
@@ -112,7 +117,7 @@ public:
     uint32_t listenSocks{0};
     while (it != uris.end()) {
       if (!urip.parse(it->c_str())) {
-        KLOGW(ITAG, "uri %s parse failed", it->c_str());
+        PRINT(ITAG, "uri %s parse failed", it->c_str());
         ++it;
         continue;
       }
@@ -131,7 +136,7 @@ public:
         continue;
       }
       ++listenSocks;
-      KLOGI(ITAG, "socket service listening %s", it->c_str());
+      PRINT(ITAG, "socket service listening %s", it->c_str());
       ++it;
     }
     if (listenSocks == 0)
@@ -171,13 +176,15 @@ private:
   }
 
   bool listenUnix(Uri& urip) {
+    if (urip.path.empty())
+      return false;
 #ifdef __APPLE__
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
 #else
     int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 #endif
     if (fd < 0) {
-      KLOGE(ITAG, "socket create failed: %s", strerror(errno));
+      PRINT(ITAG, "socket create failed: %s", strerror(errno));
       return false;
     }
 #ifdef __APPLE__
@@ -188,20 +195,25 @@ private:
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    uint32_t abslen = urip.path.length() + 1;
-    if (abslen > sizeof(addr.sun_path))
-      abslen = sizeof(addr.sun_path);
+    uint32_t addrlen;
 #ifdef __APPLE__
     unlink(urip.path.c_str());
-    strncpy(addr.sun_path, urip.path.c_str(), abslen);
+    strncpy(addr.sun_path, urip.path.c_str(), sizeof(addr.sun_path));
+    addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
 #else
-    addr.sun_path[0] = '\0';
-    memcpy(addr.sun_path + 1, urip.path.data(), abslen - 1);
+    if (urip.path[0] == '/') {
+      unlink(urip.path.c_str());
+      strncpy(addr.sun_path, urip.path.c_str(), sizeof(addr.sun_path));
+      addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
+    } else {
+      addr.sun_path[0] = '\0';
+      strncpy(addr.sun_path + 1, urip.path.c_str(), sizeof(addr.sun_path) - 1);
+      addrlen = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path + 1) + 2;
+    }
 #endif
-    abslen += offsetof(sockaddr_un, sun_path);
-    if (::bind(fd, (sockaddr *)&addr, abslen) < 0) {
+    if (::bind(fd, (sockaddr *)&addr, addrlen) < 0) {
       ::close(fd);
-      KLOGE(ITAG, "socket bind failed: %s", strerror(errno));
+      PRINT(ITAG, "socket bind failed: %s", strerror(errno));
       return false;
     }
     listen(fd, 10);
@@ -216,7 +228,7 @@ private:
     int fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
 #endif
     if (fd < 0) {
-      KLOGE(ITAG, "socket create failed: %s", strerror(errno));
+      PRINT(ITAG, "socket create failed: %s", strerror(errno));
       return false;
     }
 #ifdef __APPLE__
@@ -230,7 +242,7 @@ private:
     struct hostent *hp;
     hp = gethostbyname(urip.host.c_str());
     if (hp == nullptr) {
-      KLOGE(ITAG, "gethostbyname failed for host %s: %s",
+      PRINT(ITAG, "gethostbyname failed for host %s: %s",
           urip.host.c_str(), strerror(errno));
       ::close(fd);
       return false;
@@ -241,7 +253,7 @@ private:
     addr.sin_port = htons(urip.port);
     if (::bind(fd, (sockaddr *)&addr, sizeof(addr)) < 0) {
       ::close(fd);
-      KLOGE(ITAG, "socket bind failed: %s", strerror(errno));
+      PRINT(ITAG, "socket bind failed: %s", strerror(errno));
       return false;
     }
     listen(fd, 10);
@@ -327,7 +339,7 @@ private:
           sleep(1);
           continue;
         }
-        KLOGE(ITAG, "poll failed: %s", strerror(errno));
+        PRINT(ITAG, "poll failed: %s", strerror(errno));
         return false;
       }
       break;
@@ -374,7 +386,7 @@ private:
 #ifdef __APPLE__
     auto newfd = accept(fd, nullptr, nullptr);
     if (newfd < 0) {
-      KLOGW(ITAG, "accept failed: %s", strerror(errno));
+      PRINT(ITAG, "accept failed: %s", strerror(errno));
       return false;
     }
     auto f = fcntl(fd, F_GETFD);
@@ -383,12 +395,12 @@ private:
 #else
     auto newfd = accept4(fd, nullptr, nullptr, SOCK_CLOEXEC);
     if (newfd < 0) {
-      KLOGW(ITAG, "accept failed: %s", strerror(errno));
+      PRINT(ITAG, "accept failed: %s", strerror(errno));
       return false;
     }
 #endif
     addSocket(newfd, 0);
-    KLOGD(ITAG, "accept new connection %d", newfd);
+    PRINT(ITAG, "accept new connection %d", newfd);
     if (connectionCallback != nullptr)
       connectionCallback(newfd, true);
     return true;

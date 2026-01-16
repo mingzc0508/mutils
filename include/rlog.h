@@ -44,10 +44,19 @@ public:
   /// \return  0  should call 'write'
   //           1  don't call 'write'
   //           -1 error, will not call 'write'
-  virtual int32_t raw_write(const char*, int, RokidLogLevel,
+  virtual int32_t raw_write(const char*, int, RokidLogLevel lv,
       const char*, const char*, va_list) {
-    return 0;
+    if (lv >= logLevel)
+      return 0;
+    return 1;
   }
+
+  void setLogLevel(RokidLogLevel lv) {
+    logLevel = lv;
+  }
+
+protected:
+  RokidLogLevel logLevel{ROKID_LOGLEVEL_INFO};
 };
 
 class RLog {
@@ -93,6 +102,8 @@ int32_t rokid_log_add_builtin_endpoint(const char *name, RokidBuiltinLogWriter t
 void rokid_log_remove_endpoint(const char *name);
 
 int32_t rokid_log_enable_endpoint(const char *name, const void *init_arg, int32_t enable);
+
+void rokid_log_set_loglevel(const char *epname, RokidLogLevel lv);
 
 #ifdef __cplusplus
 } // extern "C"

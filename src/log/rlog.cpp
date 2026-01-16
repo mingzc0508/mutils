@@ -92,6 +92,21 @@ public:
     return 0;
   }
 
+  void set_loglevel(const char* epname, RokidLogLevel lv) {
+    if (epname == nullptr) {
+      auto it = writers.begin();
+      while (it != writers.end()) {
+        it->second.writer->setLogLevel(lv);
+        ++it;
+      }
+    } else {
+      auto it = writers.find(epname);
+      if (it == writers.end())
+        return;
+      it->second.writer->setLogLevel(lv);
+    }
+  }
+
   void print(const char *file, int line, RokidLogLevel lv,
              const char* tag, const char* fmt, va_list ap) {
     if (tag == nullptr || fmt == nullptr)
@@ -222,6 +237,10 @@ int32_t RLog::enable_endpoint(const char* name, const void* init_arg,
   return rlog_inst_.enable_endpoint(name, init_arg, enable);
 }
 
+void RLog::set_loglevel(const char* epname, RokidLogLevel lv) {
+  rlog_inst_.set_loglevel(epname, lv);
+}
+
 void RLog::print(const char *file, int line,
                  RokidLogLevel lv, const char* tag,
                  const char* fmt, ...) {
@@ -283,4 +302,8 @@ void rokid_log_remove_endpoint(const char *name) {
 
 int32_t rokid_log_enable_endpoint(const char *name, const void *init_arg, int32_t enable) {
   return RLog::enable_endpoint(name, init_arg, (bool)enable);
+}
+
+void rokid_log_set_loglevel(const char* epname, RokidLogLevel lv) {
+  RLog::set_loglevel(epname, lv);
 }

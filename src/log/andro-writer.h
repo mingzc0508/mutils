@@ -21,6 +21,8 @@ public:
 
   int32_t raw_write(const char* file, int line, RokidLogLevel lv,
       const char* tag, const char* fmt, va_list ap) {
+    if (lv < logLevel)
+      return 1;
 #ifdef __ANDROID__
     int prio = to_android_loglevel(lv);
     __android_log_vprint(prio, tag, fmt, ap);

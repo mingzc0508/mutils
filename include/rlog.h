@@ -19,6 +19,10 @@ typedef enum {
   ROKID_LOGWRITER_ANDROID,
 } RokidBuiltinLogWriter;
 
+#ifndef ROKID_DEFAULT_LOGLEVEL
+#define ROKID_DEFAULT_LOGLEVEL ROKID_LOGLEVEL_INFO
+#endif
+
 // name of endpoint is duplicated
 #define RLOG_EDUP -1
 // name of endpoint not found
@@ -56,7 +60,7 @@ public:
   }
 
 protected:
-  RokidLogLevel logLevel{ROKID_LOGLEVEL_INFO};
+  RokidLogLevel logLevel{ROKID_DEFAULT_LOGLEVEL};
 };
 
 class RLog {
